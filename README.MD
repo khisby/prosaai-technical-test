@@ -1,7 +1,7 @@
 # Technical Test Prosa.ai Interview - Khisby Al Ghofari  
 
 ### Live Preview
-Telegram Username Chatbot @KhisoftBot  
+Telegram Username Chatbot https://t.me/khisoftbot or @KhisoftBot  
 Web Chatbot http://khisoft.online:88
 
 ### How to run Docker
