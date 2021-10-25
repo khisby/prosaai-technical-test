@@ -1,0 +1,66 @@
+<html>
+    <head>
+        <title>Khisoft Chat Bot</title>
+        <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+            var socket;
+            var time = new Date().getTime();
+            var active = true;
+            $(document).ready(function(){
+                $('#chat').val($('#chat').val() + "Khisoft Bot : Hallo, welcome. Ask me a question." + '\n');
+
+                socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
+                socket.on('connect', function() {
+                    console.log("Joined");
+                    socket.emit('joined', {});
+                });
+
+                socket.on('message', function(data) {
+                    console.log(data);
+                    $('#chat').val($('#chat').val() + data.msg + '\n');
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                });
+
+                $('#text').keypress(function(e) {
+                    var code = e.keyCode || e.which;
+                    if (code == 13) {
+                        time = new Date().getTime();
+                        text = $('#text').val();
+                        socket.emit('text', {msg: text});
+                        console.log("ngirim " + text);
+                        $('#chat').val($('#chat').val() + text + '\n');
+                        $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                        $('#text').val('');
+                    }
+                });
+
+                setInterval(function(){
+                    if(active == true){
+                        selisih = parseInt(Math.abs(new Date().getTime() - time) / (1000) % 60);
+                        console.log(selisih);
+                        if(selisih == 30){
+                            $('#chat').val($('#chat').val() + "Khisoft Bot : Hallo, you have 30 second not response. if it's 60 second I'll leave" + '\n');
+                        }else if(selisih == 59){
+                            $('#chat').val($('#chat').val() + "Khisoft Bot : Okay Thanks for coming, I'll leave. Have a nice day.." + '\n');
+                            $("#text").attr('disabled', 'disabled');
+                            socket.emit('left', {}, function() {
+                                socket.disconnect();
+                            });
+                            active = false;
+                        }
+                    }
+                   
+                }, 1000);
+            });
+
+        </script>
+    </head>
+    <body>
+        <h1>Khisoft Bot</h1>
+        <textarea id="chat" cols="80" rows="20" readonly></textarea><br><br>
+        <input id="text" size="80" placeholder="Enter your message here. And Press Enter to Send"><br><br>
+        <h2>List of Question :  </h2>
+        <textarea cols="80" rows="80">{{ list_question }}</textarea>
+    </body>
+</html>

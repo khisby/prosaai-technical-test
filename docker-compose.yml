@@ -1,0 +1,13 @@
+version: '3.3'
+
+services:
+  web:
+    container_name: prosaai
+    image: khisby/prosaai
+    build:
+          context: .
+          dockerfile: Dockerfile
+    ports:
+    - "88:5000"
+    volumes:
+    - ./backend:/app
