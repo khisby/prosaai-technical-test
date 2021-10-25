@@ -42,12 +42,11 @@ def index():
     if request.method == 'POST':
         data = request.get_json()
         app.logger.debug('Pesan {}'.format(data)) 
-        if 'new_chat_member' in str(data):
-            nama_grup = data['message']['chat']['title']
-            grup_id   = data['message']['chat']['id']
-            mem_baru  = data['message']['new_chat_member']['first_name']
-            teks      = f'Hallo {mem_baru} !\n {nama_grup} in here, welcome. !\n Ask me a question. '
-            sendMessage(grup_id,teks)
+        if '/start' in str(data):
+            id   = data['message']['chat']['id']
+            nama  = data['message']['chat']['first_name']
+            teks      = f'Hallo {nama} !\nKhisoftBot in here, welcome. !\nAsk me a question. '
+            sendMessage(id,teks)
         else:
             id = data['message']['chat']['id']
             message = data['message']['text']
@@ -57,6 +56,7 @@ def index():
                     sendMessage(id,answer)
             else:
                     sendMessage(id,"I'am sorry. I don't understand")
+        return 'received'
     else:
         return "Hallo ini bot telegram"
 
