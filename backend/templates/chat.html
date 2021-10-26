@@ -1,66 +1,652 @@
 <html>
-    <head>
-        <title>Khisoft Chat Bot</title>
-        <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
-        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-        <script type="text/javascript" charset="utf-8">
-            var socket;
-            var time = new Date().getTime();
-            var active = true;
-            $(document).ready(function(){
-                $('#chat').val($('#chat').val() + "Khisoft Bot : Hallo, welcome. Ask me a question." + '\n');
 
-                socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
-                socket.on('connect', function() {
-                    console.log("Joined");
-                    socket.emit('joined', {});
-                });
+<head>
+    <title>Khisoft Chat Bot</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.min.css">
+    <style>
+        /*--------------------
+Mixins
+--------------------*/
+        /*--------------------
+Body
+--------------------*/
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
-                socket.on('message', function(data) {
-                    console.log(data);
-                    $('#chat').val($('#chat').val() + data.msg + '\n');
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
-                });
+        html,
+        body {
+            height: 100%;
+        }
 
-                $('#text').keypress(function(e) {
-                    var code = e.keyCode || e.which;
-                    if (code == 13) {
-                        time = new Date().getTime();
-                        text = $('#text').val();
-                        socket.emit('text', {msg: text});
-                        console.log("ngirim " + text);
-                        $('#chat').val($('#chat').val() + text + '\n');
-                        $('#chat').scrollTop($('#chat')[0].scrollHeight);
-                        $('#text').val('');
-                    }
-                });
+        body {
+            background: #EA888B;
+            background-size: cover;
+            font-family: "Open Sans", sans-serif;
+            font-size: 12px;
+            line-height: 1.3;
+            overflow: hidden;
+        }
 
-                setInterval(function(){
-                    if(active == true){
-                        selisih = parseInt(Math.abs(new Date().getTime() - time) / (1000) % 60);
-                        console.log(selisih);
-                        if(selisih == 30){
-                            $('#chat').val($('#chat').val() + "Khisoft Bot : Hallo, you have 30 second not response. if it's 60 second I'll leave" + '\n');
-                        }else if(selisih == 59){
-                            $('#chat').val($('#chat').val() + "Khisoft Bot : Okay Thanks for coming, I'll leave. Have a nice day.." + '\n');
-                            $("#text").attr('disabled', 'disabled');
-                            socket.emit('left', {}, function() {
-                                socket.disconnect();
-                            });
-                            active = false;
-                        }
-                    }
-                   
-                }, 1000);
+        .bg {
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            background: #EA888B no-repeat 0 0;
+            filter: blur(80px);
+            transform: scale(1.2);
+        }
+
+        /*--------------------
+        Chat
+        --------------------*/
+        .chat {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 80vh;
+            max-height: 500px;
+            z-index: 2;
+            overflow: hidden;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+        }
+
+        /*--------------------
+Chat Title
+--------------------*/
+        .chat-title {
+            flex: 0 1 45px;
+            position: relative;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            text-transform: uppercase;
+            text-align: left;
+            padding: 10px 10px 10px 50px;
+        }
+
+        .chat-title-custom h1,
+        .chat-title-custom h2 {
+            font-weight: normal;
+            font-size: 10px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat-title-custom h2 {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 8px;
+            letter-spacing: 1px;
+        }
+
+        .chat-title-custom .avatar {
+            border-radius: 30px;
+            width: 30px;
+            height: 30px;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            border: 2px solid rgba(255, 255, 255, 0.24);
+        }
+
+        .chat-title-custom .avatar img {
+            width: 100%;
+            height: auto;
+        }
+
+        /*--------------------
+Messages
+--------------------*/
+        .messages {
+            flex: 1 1 auto;
+            color: rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        .messages .messages-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 101%;
+            width: 100%;
+            padding: 15px;
+        }
+
+        .messages .message {
+            clear: both;
+            float: left;
+            padding: 6px 10px 7px;
+            border-radius: 10px 10px 10px 0;
+            background: rgba(0, 0, 0, 0.3);
+            margin: 8px 0;
+            font-size: 11px;
+            line-height: 1.4;
+            margin-left: 35px;
+            position: relative;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .messages .message .timestamp {
+            position: absolute;
+            bottom: -15px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .messages .message::before {
+            content: "";
+            position: absolute;
+            bottom: -6px;
+            border-top: 6px solid rgba(0, 0, 0, 0.3);
+            left: 0;
+            border-right: 7px solid transparent;
+        }
+
+        .messages .message .avatar {
+            position: absolute;
+            z-index: 1;
+            bottom: -15px;
+            left: -35px;
+            border-radius: 30px;
+            width: 30px;
+            height: 30px;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            border: 2px solid rgba(255, 255, 255, 0.24);
+        }
+
+        .messages .message .avatar img {
+            width: 100%;
+            height: auto;
+        }
+
+        .messages .message.message-personal {
+            float: right;
+            color: #fff;
+            text-align: right;
+            background: linear-gradient(120deg, #248a52, #257287);
+            border-radius: 10px 10px 0 10px;
+        }
+
+        .messages .message.message-personal::before {
+            left: auto;
+            right: 0;
+            border-right: none;
+            border-left: 5px solid transparent;
+            border-top: 4px solid #257287;
+            bottom: -4px;
+        }
+
+        .messages .message:last-child {
+            margin-bottom: 30px;
+        }
+
+        .messages .message.new {
+            transform: scale(0);
+            transform-origin: 0 0;
+            -webkit-animation: bounce 500ms linear both;
+            animation: bounce 500ms linear both;
+        }
+
+        .messages .message.loading::before {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            content: "";
+            display: block;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 2;
+            margin-top: 4px;
+            -webkit-animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            border: none;
+            -webkit-animation-delay: 0.15s;
+            animation-delay: 0.15s;
+        }
+
+        .messages .message.loading span {
+            display: block;
+            font-size: 0;
+            width: 20px;
+            height: 10px;
+            position: relative;
+        }
+
+        .messages .message.loading span::before {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            content: "";
+            display: block;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 2;
+            margin-top: 4px;
+            -webkit-animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            margin-left: -7px;
+        }
+
+        .messages .message.loading span::after {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            content: "";
+            display: block;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 2;
+            margin-top: 4px;
+            -webkit-animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            animation: ball 0.45s cubic-bezier(0, 0, 0.15, 1) alternate infinite;
+            margin-left: 7px;
+            -webkit-animation-delay: 0.3s;
+            animation-delay: 0.3s;
+        }
+
+        /*--------------------
+Message Box
+--------------------*/
+        .message-box {
+            flex: 0 1 40px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            position: relative;
+        }
+
+        .message-box .message-input {
+            background: none;
+            border: none;
+            outline: none !important;
+            resize: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            height: 17px;
+            margin: 0;
+            padding-right: 20px;
+            width: 265px;
+        }
+
+        .message-box textarea:focus:-webkit-placeholder {
+            color: transparent;
+        }
+
+        .message-box .message-submit {
+            position: absolute;
+            z-index: 1;
+            top: 9px;
+            right: 10px;
+            color: #fff;
+            border: none;
+            background: #248a52;
+            font-size: 10px;
+            text-transform: uppercase;
+            line-height: 1;
+            padding: 6px 10px;
+            border-radius: 10px;
+            outline: none !important;
+            transition: background 0.2s ease;
+        }
+
+        .message-box .message-submit:hover {
+            background: #1d7745;
+        }
+
+        /*--------------------
+Custom Srollbar
+--------------------*/
+        .mCSB_scrollTools {
+            margin: 1px -3px 1px 0;
+            opacity: 0;
+        }
+
+        .mCSB_inside>.mCSB_container {
+            margin-right: 0px;
+            padding: 0 10px;
+        }
+
+        .mCSB_scrollTools .mCSB_dragger .mCSB_dragger_bar {
+            background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        /*--------------------
+Bounce
+--------------------*/
+        @-webkit-keyframes bounce {
+            0% {
+                transform: matrix3d(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            4.7% {
+                transform: matrix3d(0.45, 0, 0, 0, 0, 0.45, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            9.41% {
+                transform: matrix3d(0.883, 0, 0, 0, 0, 0.883, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            14.11% {
+                transform: matrix3d(1.141, 0, 0, 0, 0, 1.141, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            18.72% {
+                transform: matrix3d(1.212, 0, 0, 0, 0, 1.212, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            24.32% {
+                transform: matrix3d(1.151, 0, 0, 0, 0, 1.151, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            29.93% {
+                transform: matrix3d(1.048, 0, 0, 0, 0, 1.048, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            35.54% {
+                transform: matrix3d(0.979, 0, 0, 0, 0, 0.979, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            41.04% {
+                transform: matrix3d(0.961, 0, 0, 0, 0, 0.961, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            52.15% {
+                transform: matrix3d(0.991, 0, 0, 0, 0, 0.991, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            63.26% {
+                transform: matrix3d(1.007, 0, 0, 0, 0, 1.007, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            85.49% {
+                transform: matrix3d(0.999, 0, 0, 0, 0, 0.999, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            100% {
+                transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: matrix3d(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            4.7% {
+                transform: matrix3d(0.45, 0, 0, 0, 0, 0.45, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            9.41% {
+                transform: matrix3d(0.883, 0, 0, 0, 0, 0.883, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            14.11% {
+                transform: matrix3d(1.141, 0, 0, 0, 0, 1.141, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            18.72% {
+                transform: matrix3d(1.212, 0, 0, 0, 0, 1.212, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            24.32% {
+                transform: matrix3d(1.151, 0, 0, 0, 0, 1.151, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            29.93% {
+                transform: matrix3d(1.048, 0, 0, 0, 0, 1.048, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            35.54% {
+                transform: matrix3d(0.979, 0, 0, 0, 0, 0.979, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            41.04% {
+                transform: matrix3d(0.961, 0, 0, 0, 0, 0.961, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            52.15% {
+                transform: matrix3d(0.991, 0, 0, 0, 0, 0.991, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            63.26% {
+                transform: matrix3d(1.007, 0, 0, 0, 0, 1.007, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            85.49% {
+                transform: matrix3d(0.999, 0, 0, 0, 0, 0.999, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            100% {
+                transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            }
+        }
+
+        @-webkit-keyframes ball {
+            from {
+                transform: translateY(0) scaleY(0.8);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes ball {
+            from {
+                transform: translateY(0) scaleY(0.8);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat">
+        <div class="chat-title">
+            <div class="row">
+                <div class="col-6 p-0 float-left chat-title-custom">
+                    <div class="row">
+                        <div class="col-2 p-0">
+                            <figure class="avatar">
+                                <img src="https://khisoft.id/assets/images/khisoft.png" />
+                            </figure>
+                        </div>
+                        <div class="col-10 p-0">
+                            <h1>Khisoft Bot</h1>
+                            <h2>khisoft.id</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 p-0">
+                    <button class="btn btn-primary btn-sm float-right mr-4" data-toggle="modal" data-target="#exampleModal" data-backdrop="false">List of Question</button>
+                    <div class="modal fade p-0" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog m-0 h-100" role="document">
+                            <div class="modal-content h-100">
+                                <div class="modal-header">
+                                    <h5 class="modal-title text-secondary"exampleModalLabel">List of Question</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body text-secondary" style="overflow-y: auto;">
+                                    <ul class="pl-4">
+                                        {% for i in list_question %}
+                                            <li class="mt-2">{{ i }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="messages">
+            <div class="messages-content">
+            </div>
+        </div>
+        <div class="message-box">
+            <textarea type="text" class="message-input" placeholder="Type message..."></textarea>
+            <button type="submit" class="message-submit">Send</button>
+        </div>
+
+    </div>
+    <div class="bg"></div>
+
+
+
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+
+        var socket;
+        var time = new Date().getTime();
+        var active = true;
+
+        $(document).ready(function () {
+            khisoftChat("Hallo, welcome. Ask me a question.");
+
+            socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
+            socket.on('connect', function () {
+                socket.emit('joined', {});
             });
 
-        </script>
-    </head>
-    <body>
-        <h1>Khisoft Bot</h1>
-        <textarea id="chat" cols="80" rows="20" readonly></textarea><br><br>
-        <input id="text" size="80" placeholder="Enter your message here. And Press Enter to Send"><br><br>
-        <h2>List of Question :  </h2>
-        <textarea cols="80" rows="80">{{ list_question }}</textarea>
-    </body>
+            socket.on('message', function (data) {
+                khisoftChat(data.msg);
+            });
+
+            setInterval(function () {
+                if (active == true) {
+                    selisih = parseInt(Math.abs(new Date().getTime() - time) / (1000) % 60);
+                    console.log(selisih);
+                    if (selisih == 30) {
+                        khisoftChat("Hallo, you have 30 second not response. if it's 60 second I'll leave");
+                    } else if (selisih == 59) {
+                        khisoftChat("Okay Thanks for coming, I'll leave. Have a nice day..");
+                        $(".message-input").hide();
+                        $(".message-submit").hide();
+                        socket.emit('left', {}, function () {
+                            socket.disconnect();
+                        });
+                        active = false;
+                    }
+                }
+
+            }, 1000);
+        });
+
+    </script>
+    <script type="text/javascript" charset="utf-8">
+
+        var $messages = $(".messages-content"),
+            d,
+            h,
+            m,
+            i = 0;
+
+        function updateScrollbar() {
+            $messages.mCustomScrollbar("update").mCustomScrollbar("scrollTo", "bottom", {
+                scrollInertia: 10,
+                timeout: 0
+            });
+        }
+
+        function setDate() {
+            d = new Date();
+            if (m != d.getMinutes()) {
+                m = d.getMinutes();
+                $('<div class="timestamp">' + d.getHours() + ":" + m + "</div>").appendTo(
+                    $(".message:last")
+                );
+            }
+        }
+
+        function userChat() {
+            msg = $(".message-input").val();
+            if ($.trim(msg) == "") {
+                return false;
+            }
+            socket.emit('text', { msg: msg });
+            $('<div class="message message-personal">' + msg + "</div>")
+                .appendTo($(".messages-content"))
+                .addClass("new");
+            setDate();
+            $(".message-input").val(null);
+            updateScrollbar();
+            time = new Date().getTime();
+        }
+
+        $(".message-submit").click(function () {
+            userChat();
+        });
+
+        $(window).on("keydown", function (e) {
+            if (e.which == 13) {
+                userChat();
+                return false;
+            }
+        });
+
+        function khisoftChat(msg) {
+            if ($(".message-input").val() != "") {
+                return false;
+            }
+            $(
+                '<div class="message loading new"><figure class="avatar"><img src="https://khisoft.id/assets/images/khisoft.png" /></figure><span></span></div>'
+            ).appendTo($(".messages-content"));
+
+            updateScrollbar();
+
+            setTimeout(function () {
+                $(".message.loading").remove();
+                $(
+                    '<div class="message new"><figure class="avatar"><img src="https://khisoft.id/assets/images/khisoft.png" /></figure>' +
+                    msg +
+                    "</div>"
+                )
+                    .appendTo($(".messages-content"))
+                    .addClass("new");
+                setDate();
+                updateScrollbar();
+                i++;
+            }, 1000 + Math.random() * 20 * 100);
+        }
+
+
+    </script>
+</body>
+
 </html>

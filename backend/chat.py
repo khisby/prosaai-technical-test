@@ -33,7 +33,6 @@ questions = X.toarray()
 @app.route('/')
 def chat():
     list_question = df[0].values
-    list_question = "\n".join(list_question)
     session['id'] = uuid.uuid4()
     return render_template('chat.html', id=id, list_question=list_question)
 
@@ -52,7 +51,7 @@ def index():
             message = data['message']['text']
             (answer, score, question) = getAnswer(message)
 
-            if(score > 0.6):
+            if(score > 0.1):
                     sendMessage(id,answer)
             else:
                     sendMessage(id,"I'am sorry. I don't understand")
@@ -79,10 +78,10 @@ def text(message):
         message = message["msg"].lower()
         (answer, score, question) = getAnswer(message)
 
-        if(score > 0.6):
-                emit('message', {'msg': 'Khisoft Bot ' + ':' + answer}, room=room)
+        if(score > 0.1):
+                emit('message', {'msg': answer}, room=room)
         else:
-                emit('message', {'msg': 'Khisoft Bot ' + ':' + "I'am sorry. I don't understand"}, room=room)
+                emit('message', {'msg': "I'am sorry. I don't understand"}, room=room)
 
 @socketio.on('left', namespace='/chat')
 def left(message):
