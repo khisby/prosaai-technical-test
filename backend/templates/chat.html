@@ -124,6 +124,7 @@ Messages
             height: 101%;
             width: 100%;
             padding: 15px;
+            overflow-x: auto;
         }
 
         .messages .message {
@@ -578,10 +579,8 @@ Bounce
             i = 0;
 
         function updateScrollbar() {
-            $messages.mCustomScrollbar("update").mCustomScrollbar("scrollTo", "bottom", {
-                scrollInertia: 10,
-                timeout: 0
-            });
+            console.log("sini");
+            $(".messages-content").animate({ scrollTop: $('.messages-content').prop("scrollHeight")}, 1000);
         }
 
         function setDate() {
